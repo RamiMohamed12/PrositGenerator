@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx'
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Header, ImageRun } from 'docx'
+import * as fs from 'fs'
+import * as path from 'path'
 
 interface FormData {
   prositName: string
@@ -22,7 +24,33 @@ interface FormData {
 export async function POST(request: NextRequest) {
   const data: FormData = await request.json()
 
+  // Load the logo image
+  const imagePath = path.join(process.cwd(), 'public', 'image.png')
+  const imageBuffer = fs.readFileSync(imagePath)
+  const image = new ImageRun({
+    data: imageBuffer,
+    transformation: {
+      width: 100,
+      height: 100,
+    },
+    type: 'png',
+  })
+
   const children: any[] = []
+
+  // Create header with logo in top right
+  const header = new Header({
+    children: [
+      new Paragraph({
+        children: [
+          new TextRun({
+            children: [image],
+          }),
+        ],
+        alignment: AlignmentType.RIGHT,
+      }),
+    ],
+  })
 
   // First page
   children.push(
@@ -72,7 +100,7 @@ export async function POST(request: NextRequest) {
     children.push(
       new Paragraph({ children: [new TextRun({ text: '3. Analyse du contexte:', font: 'Arial', size: 24, bold: true })] }),
       new Paragraph({ text: '' }), // Spacing before content
-      new Paragraph({ children: [new TextRun({ text: data.analyseContexte, font: 'Arial', size: 24 })], bullet: { level: 0 } }),
+      new Paragraph({ children: [new TextRun({ text: data.analyseContexte, font: 'Arial', size: 24 })] }),
       new Paragraph({ text: '' }) // Spacing after content
     )
   }
@@ -82,7 +110,7 @@ export async function POST(request: NextRequest) {
     children.push(
       new Paragraph({ children: [new TextRun({ text: '4. Définition de la problématique:', font: 'Arial', size: 24, bold: true })] }),
       new Paragraph({ text: '' }), // Spacing before content
-      new Paragraph({ children: [new TextRun({ text: data.definitionProblematique, font: 'Arial', size: 24 })], bullet: { level: 0 } }),
+      new Paragraph({ children: [new TextRun({ text: data.definitionProblematique, font: 'Arial', size: 24 })] }),
       new Paragraph({ text: '' }) // Spacing after content
     )
   }
@@ -119,6 +147,9 @@ export async function POST(request: NextRequest) {
 
   const doc = new Document({
     sections: [{
+      headers: {
+        default: header,
+      },
       properties: {},
       children: children,
     }],
