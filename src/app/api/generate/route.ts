@@ -10,7 +10,6 @@ interface FormData {
   secretaire: string
   year: string
   group: string
-  fileName: string
   motsCles: string[]
   motsADefinir: string[]
   analyseContexte: string
@@ -127,13 +126,12 @@ export async function POST(request: NextRequest) {
 
   const buffer = await Packer.toBuffer(doc)
 
-  const fileName = data.fileName.trim() || 'prosit'
-  const fullFileName = fileName.endsWith('.docx') ? fileName : `${fileName}.docx`
+  const fileName = `Prosit_${data.prositName}_${data.studentName}.docx`
 
   return new Response(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'Content-Disposition': `attachment; filename=${fullFileName}`,
+      'Content-Disposition': `attachment; filename=${fileName}`,
     },
   })
 }

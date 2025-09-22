@@ -15,7 +15,6 @@ interface FormData {
   secretaire: string
   year: string
   group: string
-  fileName: string
   motsCles: string[]
   motsADefinir: string[]
   analyseContexte: string
@@ -35,7 +34,6 @@ export default function Home() {
     secretaire: '',
     year: '',
     group: '',
-    fileName: 'prosit',
     motsCles: [''],
     motsADefinir: [''],
     analyseContexte: '',
@@ -78,10 +76,9 @@ export default function Home() {
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
-      const fileName = formData.fileName.trim() || 'prosit'
-      const fullFileName = fileName.endsWith('.docx') ? fileName : `${fileName}.docx`
+      const fileName = `Prosit_${formData.prositName}_${formData.studentName}.docx`
       a.href = url
-      a.download = fullFileName
+      a.download = fileName
       a.click()
       window.URL.revokeObjectURL(url)
     }
@@ -92,55 +89,50 @@ export default function Home() {
       <h1 className="text-2xl font-bold mb-6">Générateur de Prosit</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="prositName">Nom du Prosit</Label>
             <Input id="prositName" value={formData.prositName} onChange={(e) => updateField('prositName', e.target.value)} />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="studentName">Nom de l'étudiant</Label>
             <Input id="studentName" value={formData.studentName} onChange={(e) => updateField('studentName', e.target.value)} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="animateur">Animateur</Label>
             <Input id="animateur" value={formData.animateur} onChange={(e) => updateField('animateur', e.target.value)} />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="scribe">Scribe</Label>
             <Input id="scribe" value={formData.scribe} onChange={(e) => updateField('scribe', e.target.value)} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="gestionnaire">Gestionnaire</Label>
             <Input id="gestionnaire" value={formData.gestionnaire} onChange={(e) => updateField('gestionnaire', e.target.value)} />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="secretaire">Secrétaire</Label>
             <Input id="secretaire" value={formData.secretaire} onChange={(e) => updateField('secretaire', e.target.value)} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="year">Année (A)</Label>
             <Input id="year" value={formData.year} onChange={(e) => updateField('year', e.target.value)} />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="group">Groupe</Label>
             <Input id="group" value={formData.group} onChange={(e) => updateField('group', e.target.value)} />
           </div>
         </div>
 
-        <div>
-          <Label htmlFor="fileName">Nom du fichier (sans extension)</Label>
-          <Input id="fileName" value={formData.fileName} onChange={(e) => updateField('fileName', e.target.value)} placeholder="prosit" />
-        </div>
-
-        <div>
+        <div className="space-y-2">
           <Label>Mots clés</Label>
           {formData.motsCles.map((mot, index) => (
             <div key={index} className="flex gap-2 mb-2">
@@ -151,7 +143,7 @@ export default function Home() {
           <Button type="button" variant="outline" onClick={() => addItem('motsCles')}>Ajouter</Button>
         </div>
 
-        <div>
+        <div className="space-y-2">
           <Label>Mots à définir</Label>
           {formData.motsADefinir.map((mot, index) => (
             <div key={index} className="flex gap-2 mb-2">
@@ -162,17 +154,17 @@ export default function Home() {
           <Button type="button" variant="outline" onClick={() => addItem('motsADefinir')}>Ajouter</Button>
         </div>
 
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="analyseContexte">Analyse du contexte</Label>
           <Textarea id="analyseContexte" value={formData.analyseContexte} onChange={(e) => updateField('analyseContexte', e.target.value)} />
         </div>
 
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="definitionProblematique">Définition de la problématique</Label>
           <Textarea id="definitionProblematique" value={formData.definitionProblematique} onChange={(e) => updateField('definitionProblematique', e.target.value)} />
         </div>
 
-        <div>
+        <div className="space-y-2">
           <Label>Contraintes</Label>
           {formData.contraintes.map((contrainte, index) => (
             <div key={index} className="flex gap-2 mb-2">
@@ -183,7 +175,7 @@ export default function Home() {
           <Button type="button" variant="outline" onClick={() => addItem('contraintes')}>Ajouter</Button>
         </div>
 
-        <div>
+        <div className="space-y-2">
           <Label>Hypothèse</Label>
           {formData.hypothese.map((hyp, index) => (
             <div key={index} className="flex gap-2 mb-2">
@@ -194,7 +186,7 @@ export default function Home() {
           <Button type="button" variant="outline" onClick={() => addItem('hypothese')}>Ajouter</Button>
         </div>
 
-        <div>
+        <div className="space-y-2">
           <Label>Plan d'actions</Label>
           {formData.planActions.map((action, index) => (
             <div key={index} className="flex gap-2 mb-2">
