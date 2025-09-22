@@ -15,6 +15,7 @@ interface FormData {
   secretaire: string
   year: string
   group: string
+  fileName: string
   motsCles: string[]
   motsADefinir: string[]
   analyseContexte: string
@@ -34,6 +35,7 @@ export default function Home() {
     secretaire: '',
     year: '',
     group: '',
+    fileName: 'prosit',
     motsCles: [''],
     motsADefinir: [''],
     analyseContexte: '',
@@ -76,8 +78,10 @@ export default function Home() {
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
+      const fileName = formData.fileName.trim() || 'prosit'
+      const fullFileName = fileName.endsWith('.docx') ? fileName : `${fileName}.docx`
       a.href = url
-      a.download = 'prosit.docx'
+      a.download = fullFileName
       a.click()
       window.URL.revokeObjectURL(url)
     }
@@ -129,6 +133,11 @@ export default function Home() {
             <Label htmlFor="group">Groupe</Label>
             <Input id="group" value={formData.group} onChange={(e) => updateField('group', e.target.value)} />
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="fileName">Nom du fichier (sans extension)</Label>
+          <Input id="fileName" value={formData.fileName} onChange={(e) => updateField('fileName', e.target.value)} placeholder="prosit" />
         </div>
 
         <div>
