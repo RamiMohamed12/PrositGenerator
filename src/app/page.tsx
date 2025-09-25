@@ -199,6 +199,21 @@ export default function Home() {
 
         <Button type="submit">Générer le Prosit</Button>
       </form>
+
+      <footer className="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-gray-600">
+        <p>
+          Created by{' '}
+          <a
+            href="https://github.com/RamiMohamed12/PrositGenerator"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            RamiMohamed12
+          </a>
+          {' '}on GitHub. It's free to submit code! (Beta version)
+        </p>
+      </footer>
     </div>
   )
 }
