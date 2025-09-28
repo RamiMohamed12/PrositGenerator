@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 interface FormData {
   prositName: string
@@ -85,7 +86,10 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
+    <div className="container mx-auto p-4 max-w-4xl relative">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <h1 className="text-2xl font-bold mb-6">Générateur de Prosit</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -200,14 +204,14 @@ export default function Home() {
         <Button type="submit">Générer le Prosit</Button>
       </form>
 
-      <footer className="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-gray-600">
+      <footer className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-600 dark:text-gray-300">
         <p>
           Created by{' '}
           <a
             href="https://github.com/RamiMohamed12/PrositGenerator"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 underline"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
           >
             RamiMohamed12
           </a>
