@@ -36,7 +36,33 @@ interface FormData {
 }
 
 export async function POST(request: NextRequest) {
-  const data: FormData = await request.json()
+  try {
+    const data: FormData = await request.json()
+
+    // Sanitize and encode text to handle special characters
+    const sanitizeText = (text: string) => {
+      return text.normalize('NFC').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
+    }
+
+    // Apply sanitization to all text fields
+    const sanitizedData = {
+      ...data,
+      prositName: sanitizeText(data.prositName),
+      studentName: sanitizeText(data.studentName),
+      animateur: sanitizeText(data.animateur),
+      scribe: sanitizeText(data.scribe),
+      gestionnaire: sanitizeText(data.gestionnaire),
+      secretaire: sanitizeText(data.secretaire),
+      year: sanitizeText(data.year),
+      group: sanitizeText(data.group),
+      motsCles: data.motsCles.map(sanitizeText),
+      motsADefinir: data.motsADefinir.map(sanitizeText),
+      analyseContexte: sanitizeText(data.analyseContexte),
+      definitionProblematique: sanitizeText(data.definitionProblematique),
+      contraintes: data.contraintes.map(sanitizeText),
+      hypothese: data.hypothese.map(sanitizeText),
+      planActions: data.planActions.map(sanitizeText),
+    }
 
   // Load the logo image
   const imagePath = path.join(process.cwd(), 'public', 'image.png')
@@ -72,7 +98,7 @@ export async function POST(request: NextRequest) {
       new Paragraph({
         children: [
           new TextRun({
-            text: `CER U.E ${data.prositName}`,
+            text: `CER U.E ${sanitizedData.prositName}`,
             font: 'Arial',
             size: 52, // 26pt
             bold: true,
@@ -84,7 +110,7 @@ export async function POST(request: NextRequest) {
       new Paragraph({
         children: [
           new TextRun({
-            text: `"${data.studentName}"`,
+            text: `"${sanitizedData.studentName}"`,
             font: 'Arial',
             size: 52,
             bold: true,
@@ -157,7 +183,7 @@ export async function POST(request: NextRequest) {
                 verticalAlign: "center",
                 children: [
                   new Paragraph({
-                    children: [new TextRun({ text: data.animateur || "", font: "Arial" })],
+                    children: [new TextRun({ text: sanitizedData.animateur || "", font: "Arial" })],
                   }),
                 ],
                 shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFF8DC" },
@@ -184,7 +210,7 @@ export async function POST(request: NextRequest) {
                 verticalAlign: "center",
                 children: [
                   new Paragraph({
-                    children: [new TextRun({ text: data.scribe || "", font: "Arial" })],
+                    children: [new TextRun({ text: sanitizedData.scribe || "", font: "Arial" })],
                   }),
                 ],
                 shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFEFD5" },
@@ -211,7 +237,7 @@ export async function POST(request: NextRequest) {
                 verticalAlign: "center",
                 children: [
                   new Paragraph({
-                    children: [new TextRun({ text: data.gestionnaire || "", font: "Arial" })],
+                    children: [new TextRun({ text: sanitizedData.gestionnaire || "", font: "Arial" })],
                   }),
                 ],
                 shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFF8DC" },
@@ -238,7 +264,7 @@ export async function POST(request: NextRequest) {
                 verticalAlign: "center",
                 children: [
                   new Paragraph({
-                    children: [new TextRun({ text: data.secretaire || "", font: "Arial" })],
+                    children: [new TextRun({ text: sanitizedData.secretaire || "", font: "Arial" })],
                   }),
                 ],
                 shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFEFD5" },
@@ -254,58 +280,57 @@ export async function POST(request: NextRequest) {
       new Paragraph({ text: '', pageBreakBefore: true })
   );
 
-  // Mots clés
-  if (data.motsCles.some(m => m.trim())) {
+  if (sanitizedData.motsCles.some(m => m.trim())) {
     children.push(
       new Paragraph({ children: [new TextRun({ text: '1. Mots clés:', font: 'Arial', size: 24, bold: true })] }),
       new Paragraph({ text: '' }), // Spacing before bullets
-      ...data.motsCles.filter(m => m.trim()).map(mot => new Paragraph({ children: [new TextRun({ text: `${mot}`, font: 'Arial', size: 24 })], bullet: { level: 0 } })),
+      ...sanitizedData.motsCles.filter(m => m.trim()).map(mot => new Paragraph({ children: [new TextRun({ text: `${mot}`, font: 'Arial', size: 24 })], bullet: { level: 0 } })),
       new Paragraph({ text: '' }) // Spacing after bullets
     )
   }
 
   // Mots à définir
-  if (data.motsADefinir.some(m => m.trim())) {
+  if (sanitizedData.motsADefinir.some(m => m.trim())) {
     children.push(
       new Paragraph({ children: [new TextRun({ text: '2. Mots à définir:', font: 'Arial', size: 24, bold: true })] }),
       new Paragraph({ text: '' }), // Spacing before bullets
-      ...data.motsADefinir.filter(m => m.trim()).map(mot => new Paragraph({ children: [new TextRun({ text: `${mot}`, font: 'Arial', size: 24 })], bullet: { level: 0 } })),
+      ...sanitizedData.motsADefinir.filter(m => m.trim()).map(mot => new Paragraph({ children: [new TextRun({ text: `${mot}`, font: 'Arial', size: 24 })], bullet: { level: 0 } })),
       new Paragraph({ text: '' }) // Spacing after bullets
     )
   }
 
   // Analyse du contexte
-  if (data.analyseContexte.trim()) {
+  if (sanitizedData.analyseContexte.trim()) {
     children.push(
       new Paragraph({ children: [new TextRun({ text: '3. Analyse du contexte:', font: 'Arial', size: 24, bold: true })] }),
       new Paragraph({ text: '' }), // Spacing before content
-      new Paragraph({ children: [new TextRun({ text: data.analyseContexte, font: 'Arial', size: 24 })] }),
+      new Paragraph({ children: [new TextRun({ text: sanitizedData.analyseContexte, font: 'Arial', size: 24 })] }),
       new Paragraph({ text: '' }) // Spacing after content
     )
   }
 
   // Définition de la problématique
-  if (data.definitionProblematique.trim()) {
+  if (sanitizedData.definitionProblematique.trim()) {
     children.push(
       new Paragraph({ children: [new TextRun({ text: '4. Définition de la problématique:', font: 'Arial', size: 24, bold: true })] }),
       new Paragraph({ text: '' }), // Spacing before content
-      new Paragraph({ children: [new TextRun({ text: data.definitionProblematique, font: 'Arial', size: 24 })] }),
+      new Paragraph({ children: [new TextRun({ text: sanitizedData.definitionProblematique, font: 'Arial', size: 24 })] }),
       new Paragraph({ text: '' }) // Spacing after content
     )
   }
 
   // Contraintes
-  if (data.contraintes.some(c => c.trim())) {
+  if (sanitizedData.contraintes.some(c => c.trim())) {
     children.push(
       new Paragraph({ children: [new TextRun({ text: '5. Contraintes:', font: 'Arial', size: 24, bold: true })] }),
       new Paragraph({ text: '' }), // Spacing before bullets
-      ...data.contraintes.filter(c => c.trim()).map(con => new Paragraph({ children: [new TextRun({ text: `${con}`, font: 'Arial', size: 24 })], bullet: { level: 0 } })),
+      ...sanitizedData.contraintes.filter(c => c.trim()).map(con => new Paragraph({ children: [new TextRun({ text: `${con}`, font: 'Arial', size: 24 })], bullet: { level: 0 } })),
       new Paragraph({ text: '' }) // Spacing after bullets
     )
   }
 
   // Plan d'action
-  if (data.planActions.some(a => a.trim())) {
+  if (sanitizedData.planActions.some(a => a.trim())) {
     children.push(
         new Paragraph({
           children: [new TextRun({ text: "6. Plan d'actions :", font: "Arial", size: 24, bold: true })],
@@ -313,7 +338,7 @@ export async function POST(request: NextRequest) {
         new Paragraph({ text: "" }) // spacing before list of actions
     );
 
-    data.planActions
+    sanitizedData.planActions
         .filter(a => a.trim())
         .forEach((action, index) => {
           const secNum = `6.${index + 1}`;
@@ -359,7 +384,7 @@ export async function POST(request: NextRequest) {
   }
 
 // Hypothèses
-  if (data.hypothese.some(h => h.trim())) {
+  if (sanitizedData.hypothese.some(h => h.trim())) {
     children.push(
         new Paragraph({
           children: [new TextRun({ text: "7. Hypothèses :", font: "Arial", size: 24, bold: true })],
@@ -367,7 +392,7 @@ export async function POST(request: NextRequest) {
         new Paragraph({ text: "" }) // spacing before list of hypotheses
     );
 
-    data.hypothese
+    sanitizedData.hypothese
         .filter(h => h.trim())
         .forEach((hyp, index) => {
           const secNum = `7.${index + 1}`;
@@ -413,7 +438,7 @@ export async function POST(request: NextRequest) {
       new Paragraph({
         children: [
           new TextRun({
-            text: `${new Date().toLocaleDateString('fr-FR')} A${data.year}-Groupe ${data.group}`,
+            text: `${new Date().toLocaleDateString('fr-FR')} A${sanitizedData.year}-Groupe ${sanitizedData.group}`,
             font: 'Arial',
             size: 24,
           }),
@@ -442,7 +467,7 @@ export async function POST(request: NextRequest) {
 
   const buffer = await Packer.toBuffer(doc)
 
-  const fileName = `Prosit_${data.prositName}---.docx`
+  const fileName = `Prosit_${sanitizedData.prositName}---.docx`
 
   return new Response(new Uint8Array(buffer), {
     headers: {
@@ -450,4 +475,13 @@ export async function POST(request: NextRequest) {
       'Content-Disposition': `attachment; filename=${fileName}`,
     },
   })
+  } catch (error) {
+    console.error('Error generating document:', error)
+    return new Response(JSON.stringify({ error: 'Failed to generate document' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+  }
 }
