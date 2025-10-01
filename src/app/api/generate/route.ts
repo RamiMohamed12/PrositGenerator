@@ -18,6 +18,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 interface FormData {
+  mode?: 'aller' | 'retour'
   prositName: string
   studentName: string
   animateur: string
@@ -35,8 +36,45 @@ interface FormData {
   planActions: string[]
 }
 
+interface RetourData {
+  // All fields from Prosit Aller
+  prositName: string
+  studentName: string
+  animateur: string
+  scribe: string
+  gestionnaire: string
+  secretaire: string
+  year: string
+  group: string
+  motsCles: string[]
+  analyseContexte: string
+  definitionProblematique: string
+  contraintes: string[]
+  hypothese: string[]
+  
+  // Editable fields for Retour
+  motsADefinir: string[]
+  definitions: { mot: string; definition: string }[]
+  planActions: { 
+    title: string
+    paragraphs: { 
+      id: string
+      text: string
+      order: number
+    }[] 
+  }[]
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const contentType = request.headers.get('content-type')
+    
+    // Handle Retour mode with FormData (includes images)
+    if (contentType?.includes('multipart/form-data')) {
+      return await handleRetourMode(request)
+    }
+    
+    // Handle Aller mode with JSON
     const data: FormData = await request.json()
 
     // Sanitize and encode text to handle special characters
@@ -489,6 +527,493 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error generating document:', error)
     return new Response(JSON.stringify({ error: 'Failed to generate document' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+  }
+}
+
+async function handleRetourMode(request: NextRequest) {
+  try {
+    const formData = await request.formData()
+    const dataString = formData.get('data') as string
+    const retourData: RetourData = JSON.parse(dataString)
+
+    // Sanitize text helper
+    const sanitizeText = (text: string) => {
+      return text.normalize('NFC').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
+    }
+
+    // Load the logo image
+    const imagePath = path.join(process.cwd(), 'public', 'image.png')
+    const imageBuffer = fs.readFileSync(imagePath)
+    const image = new ImageRun({
+      data: imageBuffer,
+      transformation: {
+        width: 100,
+        height: 100,
+      },
+      type: 'png',
+    })
+
+    const children: any[] = []
+
+    // Create header with logo in top left
+    const header = new Header({
+      children: [
+        new Paragraph({
+          children: [
+            new TextRun({
+              children: [image],
+            }),
+          ],
+          alignment: AlignmentType.LEFT,
+        }),
+      ],
+    })
+
+    // First page - Title and roles table (same as Aller)
+    children.push(
+      // Alpha warning banner
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: '⚠️ EXPERIMENTAL - ALPHA VERSION ⚠️',
+            font: 'Arial',
+            size: 28,
+            bold: true,
+            color: 'FF0000', // Red color
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 100 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'This Prosit Retour feature is currently in alpha testing. Please report any issues.',
+            font: 'Arial',
+            size: 20,
+            italics: true,
+            color: 'FF6600', // Orange color
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 400 },
+      }),
+      
+      // Title (centered)
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `CER U.E ${sanitizeText(retourData.prositName)}`,
+            font: 'Arial',
+            size: 52, // 26pt
+            bold: true,
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `"${sanitizeText(retourData.studentName)}"`,
+            font: 'Arial',
+            size: 52,
+            bold: true,
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 800 },
+      }),
+
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: '' }),
+
+      // Roles table with same colors as Aller
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          // Header row (gold)
+          new TableRow({
+            height: { value: 600, rule: "atLeast" },
+            children: [
+              new TableCell({
+                width: { size: 25, type: WidthType.PERCENTAGE },
+                verticalAlign: "center",
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [new TextRun({ text: "Rôle", bold: true, font: "Arial" })],
+                  }),
+                ],
+                shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFD700" },
+              }),
+              new TableCell({
+                width: { size: 75, type: WidthType.PERCENTAGE },
+                verticalAlign: "center",
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [new TextRun({ text: "Nom Prénom", bold: true, font: "Arial" })],
+                  }),
+                ],
+                shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFD700" },
+              }),
+            ],
+          }),
+
+          // Animateur (light cream)
+          new TableRow({
+            height: { value: 600, rule: "atLeast" },
+            children: [
+              new TableCell({
+                width: { size: 25, type: WidthType.PERCENTAGE },
+                verticalAlign: "center",
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: "Animateur", bold: true, font: "Arial" })],
+                  }),
+                ],
+                shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFF8DC" },
+              }),
+              new TableCell({
+                width: { size: 75, type: WidthType.PERCENTAGE },
+                verticalAlign: "center",
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: sanitizeText(retourData.animateur) || "", font: "Arial" })],
+                  }),
+                ],
+                shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFF8DC" },
+              }),
+            ],
+          }),
+
+          // Scribe (papaya whip)
+          new TableRow({
+            height: { value: 600, rule: "atLeast" },
+            children: [
+              new TableCell({
+                width: { size: 25, type: WidthType.PERCENTAGE },
+                verticalAlign: "center",
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: "Scribe", bold: true, font: "Arial" })],
+                  }),
+                ],
+                shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFEFD5" },
+              }),
+              new TableCell({
+                width: { size: 75, type: WidthType.PERCENTAGE },
+                verticalAlign: "center",
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: sanitizeText(retourData.scribe) || "", font: "Arial" })],
+                  }),
+                ],
+                shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFEFD5" },
+              }),
+            ],
+          }),
+
+          // Gestionnaire (light cream)
+          new TableRow({
+            height: { value: 600, rule: "atLeast" },
+            children: [
+              new TableCell({
+                width: { size: 25, type: WidthType.PERCENTAGE },
+                verticalAlign: "center",
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: "Gestionnaire", bold: true, font: "Arial" })],
+                  }),
+                ],
+                shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFF8DC" },
+              }),
+              new TableCell({
+                width: { size: 75, type: WidthType.PERCENTAGE },
+                verticalAlign: "center",
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: sanitizeText(retourData.gestionnaire) || "", font: "Arial" })],
+                  }),
+                ],
+                shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFF8DC" },
+              }),
+            ],
+          }),
+
+          // Secrétaire (papaya whip)
+          new TableRow({
+            height: { value: 600, rule: "atLeast" },
+            children: [
+              new TableCell({
+                width: { size: 25, type: WidthType.PERCENTAGE },
+                verticalAlign: "center",
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: "Secrétaire", bold: true, font: "Arial" })],
+                  }),
+                ],
+                shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFEFD5" },
+              }),
+              new TableCell({
+                width: { size: 75, type: WidthType.PERCENTAGE },
+                verticalAlign: "center",
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: sanitizeText(retourData.secretaire) || "", font: "Arial" })],
+                  }),
+                ],
+                shading: { type: ShadingType.CLEAR, color: "auto", fill: "FFEFD5" },
+              }),
+            ],
+          }),
+        ],
+      }),
+
+      // Page break
+      new Paragraph({ text: '', pageBreakBefore: true })
+    )
+
+    // 1. Mots clés
+    if (retourData.motsCles.length > 0) {
+      children.push(
+        new Paragraph({ children: [new TextRun({ text: '1. Mots clés:', font: 'Arial', size: 24, bold: true })] }),
+        new Paragraph({ text: '' }), // Spacing before bullets
+        ...retourData.motsCles.map(mot => new Paragraph({ 
+          children: [new TextRun({ text: sanitizeText(mot), font: 'Arial', size: 24 })], 
+          bullet: { level: 0 } 
+        })),
+        new Paragraph({ text: '' }) // Spacing after bullets
+      )
+    }
+
+    // 2. Mots à définir (with definitions)
+    if (retourData.definitions.length > 0) {
+      children.push(
+        new Paragraph({ children: [new TextRun({ text: '2. Mots à définir:', font: 'Arial', size: 24, bold: true })] }),
+        new Paragraph({ text: '' }) // Spacing before content
+      )
+
+      retourData.definitions.forEach(def => {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: `${sanitizeText(def.mot)}: `, font: 'Arial', size: 24, bold: true }),
+              new TextRun({ text: sanitizeText(def.definition), font: 'Arial', size: 24 })
+            ]
+          })
+        )
+      })
+
+      children.push(new Paragraph({ text: '' })) // Spacing after section
+    }
+
+    // 3. Analyse du contexte
+    if (retourData.analyseContexte.trim()) {
+      children.push(
+        new Paragraph({ children: [new TextRun({ text: '3. Analyse du contexte:', font: 'Arial', size: 24, bold: true })] }),
+        new Paragraph({ text: '' }), // Spacing before content
+        new Paragraph({ children: [new TextRun({ text: sanitizeText(retourData.analyseContexte), font: 'Arial', size: 24 })] }),
+        new Paragraph({ text: '' }) // Spacing after content
+      )
+    }
+
+    // 4. Définition de la problématique
+    if (retourData.definitionProblematique.trim()) {
+      children.push(
+        new Paragraph({ children: [new TextRun({ text: '4. Définition de la problématique:', font: 'Arial', size: 24, bold: true })] }),
+        new Paragraph({ text: '' }), // Spacing before content
+        new Paragraph({ children: [new TextRun({ text: sanitizeText(retourData.definitionProblematique), font: 'Arial', size: 24 })] }),
+        new Paragraph({ text: '' }) // Spacing after content
+      )
+    }
+
+    // 5. Contraintes
+    if (retourData.contraintes.length > 0) {
+      children.push(
+        new Paragraph({ children: [new TextRun({ text: '5. Contraintes:', font: 'Arial', size: 24, bold: true })] }),
+        new Paragraph({ text: '' }), // Spacing before bullets
+        ...retourData.contraintes.map(con => new Paragraph({ 
+          children: [new TextRun({ text: sanitizeText(con), font: 'Arial', size: 24 })], 
+          bullet: { level: 0 } 
+        })),
+        new Paragraph({ text: '' }) // Spacing after bullets
+      )
+    }
+
+    // 6. Plan d'actions (with paragraphs and images)
+    if (retourData.planActions.length > 0) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: "6. Plan d'actions :", font: "Arial", size: 24, bold: true })],
+        }),
+        new Paragraph({ text: "" }) // spacing before list of actions
+      )
+
+      for (let i = 0; i < retourData.planActions.length; i++) {
+        const action = retourData.planActions[i]
+        const secNum = `6.${i + 1}`
+
+        // Action title (indented)
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: `${secNum} ${sanitizeText(action.title)}`, font: "Arial", size: 24, bold: true }),
+            ],
+            indent: { left: 400 },
+            spacing: { after: 80 },
+          })
+        )
+
+        // Sort paragraphs by order
+        const sortedParagraphs = [...action.paragraphs].sort((a, b) => a.order - b.order)
+
+        for (let paraIdx = 0; paraIdx < sortedParagraphs.length; paraIdx++) {
+          const para = sortedParagraphs[paraIdx]
+
+          // Add paragraph text
+          if (para.text && para.text.trim()) {
+            children.push(
+              new Paragraph({
+                children: [new TextRun({ text: sanitizeText(para.text), font: "Arial", size: 24 })],
+                indent: { left: 400 },
+                spacing: { after: 150 },
+              })
+            )
+          }
+
+          // Add image if present
+          const imageKey = `image_${i}_${action.paragraphs.findIndex(p => p.id === para.id)}`
+          const imageFile = formData.get(imageKey) as File | null
+
+          if (imageFile) {
+            try {
+              const imageArrayBuffer = await imageFile.arrayBuffer()
+              const imageBufferData = Buffer.from(imageArrayBuffer)
+
+              // Determine image type
+              const imageType = imageFile.type.includes('png') ? 'png' : 'jpg'
+
+              children.push(
+                new Paragraph({
+                  children: [
+                    new ImageRun({
+                      data: imageBufferData,
+                      transformation: {
+                        width: 400,
+                        height: 300,
+                      },
+                      type: imageType,
+                    }),
+                  ],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { after: 200 },
+                })
+              )
+            } catch (error) {
+              console.error('Error processing image:', error)
+            }
+          }
+        }
+
+        children.push(new Paragraph({ text: '' })) // Spacing after each action
+      }
+    }
+
+    // 7. Hypothèses
+    if (retourData.hypothese.length > 0) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: "7. Hypothèses :", font: "Arial", size: 24, bold: true })],
+        }),
+        new Paragraph({ text: "" }) // spacing before list of hypotheses
+      )
+
+      retourData.hypothese.forEach((hyp, index) => {
+        const secNum = `7.${index + 1}`
+
+        // Hypothesis text (indented)
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: `${secNum} ${sanitizeText(hyp)}`, font: "Arial", size: 24, bold: true })],
+            indent: { left: 400 },
+            spacing: { after: 160 },
+          })
+        )
+      })
+
+      children.push(new Paragraph({ text: '' })) // Spacing after section
+    }
+
+    // Footer with date, year, and group
+    const footerFirstPage = new Footer({
+      children: [
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `${new Date().toLocaleDateString('fr-FR')} A${retourData.year}-Groupe ${retourData.group}`,
+              font: 'Arial',
+              size: 24,
+            }),
+          ],
+          alignment: AlignmentType.LEFT,
+        }),
+      ],
+    })
+
+    // Create document
+    const doc = new Document({
+      sections: [{
+        headers: {
+          first: header,
+          default: header,
+        },
+        footers: {
+          first: footerFirstPage,
+          default: new Footer({ children: [] }),
+        },
+        properties: {
+          titlePage: true,
+        },
+        children: children,
+      }],
+    })
+
+    const buffer = await Packer.toBuffer(doc)
+
+    // Sanitize filename
+    const safeFileName = sanitizeText(retourData.prositName)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .trim()
+
+    const fileName = `Prosit_Retour_${safeFileName}_${sanitizeText(retourData.studentName).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_-]/g, '_')}.docx`
+    const encodedFileName = encodeURIComponent(fileName)
+
+    return new Response(new Uint8Array(buffer), {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'Content-Disposition': `attachment; filename="${fileName}"; filename*=UTF-8''${encodedFileName}`,
+      },
+    })
+  } catch (error) {
+    console.error('Error generating retour document:', error)
+    return new Response(JSON.stringify({ error: 'Failed to generate retour document' }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
