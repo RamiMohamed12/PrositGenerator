@@ -467,12 +467,23 @@ export async function POST(request: NextRequest) {
 
   const buffer = await Packer.toBuffer(doc)
 
-  const fileName = `Prosit_${sanitizedData.prositName}---.docx`
+  // Sanitize filename to be safe for HTTP headers
+  // Remove or replace special characters that might cause issues
+  const safeFileName = sanitizedData.prositName
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics (accents)
+    .replace(/[^a-zA-Z0-9_-]/g, '_') // Replace any remaining special chars with underscore
+    .trim()
+
+  const fileName = `Prosit_${safeFileName}_${sanitizedData.studentName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_-]/g, '_')}.docx`
+  
+  // Use RFC 5987 encoding for the filename with special characters
+  const encodedFileName = encodeURIComponent(fileName)
 
   return new Response(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'Content-Disposition': `attachment; filename=${fileName}`,
+      'Content-Disposition': `attachment; filename="${fileName}"; filename*=UTF-8''${encodedFileName}`,
     },
   })
   } catch (error) {
