@@ -546,6 +546,166 @@ async function handleRetourMode(request: NextRequest) {
       return text.normalize('NFC').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
     }
 
+    // Convert LaTeX-style math notation to readable text
+    const convertLatexToText = (text: string): string => {
+      return text
+        // Remove LaTeX delimiters
+        .replace(/\\\(/g, '').replace(/\\\)/g, '')
+        .replace(/\$\$/g, '').replace(/\$/g, '')
+        
+        // Convert common LaTeX commands
+        .replace(/\\text\{([^}]+)\}/g, '$1')
+        .replace(/\\neq/g, '≠')
+        .replace(/\\leq/g, '≤')
+        .replace(/\\geq/g, '≥')
+        .replace(/\\times/g, '×')
+        .replace(/\\div/g, '÷')
+        .replace(/\\pm/g, '±')
+        .replace(/\\infty/g, '∞')
+        .replace(/\\alpha/g, 'α')
+        .replace(/\\beta/g, 'β')
+        .replace(/\\gamma/g, 'γ')
+        .replace(/\\delta/g, 'δ')
+        .replace(/\\theta/g, 'θ')
+        .replace(/\\lambda/g, 'λ')
+        .replace(/\\mu/g, 'μ')
+        .replace(/\\pi/g, 'π')
+        .replace(/\\sigma/g, 'σ')
+        .replace(/\\to/g, '→')
+        .replace(/\\rightarrow/g, '→')
+        .replace(/\\leftarrow/g, '←')
+        .replace(/\\Rightarrow/g, '⇒')
+        .replace(/\\Leftarrow/g, '⇐')
+        .replace(/\\in/g, '∈')
+        .replace(/\\notin/g, '∉')
+        .replace(/\\subset/g, '⊂')
+        .replace(/\\supset/g, '⊃')
+        .replace(/\\cup/g, '∪')
+        .replace(/\\cap/g, '∩')
+        .replace(/\\emptyset/g, '∅')
+        .replace(/\\forall/g, '∀')
+        .replace(/\\exists/g, '∃')
+        .replace(/\\sum/g, '∑')
+        .replace(/\\prod/g, '∏')
+        .replace(/\\int/g, '∫')
+        .replace(/\\cdot/g, '·')
+        
+        // Clean up brackets and parentheses
+        .replace(/\\\{/g, '{').replace(/\\\}/g, '}')
+        .replace(/\\\[/g, '[').replace(/\\\]/g, ']')
+        
+        // Remove remaining backslashes
+        .replace(/\\/g, '')
+    }
+
+    // Helper function to parse markdown-style text into Word paragraphs
+    const parseTextToParagraphs = (text: string, baseIndent: number = 0): Paragraph[] => {
+      const paragraphs: Paragraph[] = []
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+      
+      for (const line of lines) {
+        // Handle headers (## Title)
+        if (line.startsWith('##')) {
+          const headerText = line.replace(/^#+\s*/, '')
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: sanitizeText(headerText), font: 'Arial', size: 28, bold: true })],
+              spacing: { before: 200, after: 100 },
+              indent: { left: baseIndent },
+            })
+          )
+        }
+        // Handle subheaders (### Title)
+        else if (line.startsWith('###')) {
+          const subheaderText = line.replace(/^#+\s*/, '')
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: sanitizeText(subheaderText), font: 'Arial', size: 26, bold: true })],
+              spacing: { before: 150, after: 80 },
+              indent: { left: baseIndent + 200 },
+            })
+          )
+        }
+        // Handle bullet points
+        else if (line.startsWith('*') || line.startsWith('-')) {
+          const bulletText = convertLatexToText(line.replace(/^[*-]\s*/, ''))
+          // Parse bold text within bullets (**text**)
+          const parts = bulletText.split(/(\*\*.*?\*\*)/)
+          const textRuns: TextRun[] = []
+          
+          for (const part of parts) {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              textRuns.push(new TextRun({ text: sanitizeText(part.replace(/\*\*/g, '')), font: 'Arial', size: 24, bold: true }))
+            } else if (part.length > 0) {
+              textRuns.push(new TextRun({ text: sanitizeText(part), font: 'Arial', size: 24 }))
+            }
+          }
+          
+          paragraphs.push(
+            new Paragraph({
+              children: textRuns,
+              bullet: { level: 0 },
+              spacing: { after: 80 },
+              indent: { left: baseIndent },
+            })
+          )
+        }
+        // Handle code blocks (```...```)
+        else if (line.startsWith('```')) {
+          continue // Skip code block markers
+        }
+        // Handle blockquotes (> text)
+        else if (line.startsWith('>')) {
+          const quoteText = line.replace(/^>\s*/, '')
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: sanitizeText(quoteText), font: 'Arial', size: 22, italics: true })],
+              indent: { left: baseIndent + 400 },
+              spacing: { after: 100 },
+            })
+          )
+        }
+        // Handle horizontal rules (---)
+        else if (line === '---' || line === '***') {
+          paragraphs.push(new Paragraph({ text: '', border: { bottom: { color: '000000', space: 1, style: 'single', size: 6 } }, spacing: { after: 200 }, indent: { left: baseIndent } }))
+        }
+        // Handle regular text with inline formatting
+        else {
+          // First convert any LaTeX expressions
+          let processedLine = convertLatexToText(line)
+          
+          // Parse bold (**text**), code (`text`), and math expressions
+          const parts = processedLine.split(/(\*\*.*?\*\*|\`.*?\`|\(.*?\)|\[.*?\])/)
+          const textRuns: TextRun[] = []
+          
+          for (const part of parts) {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              textRuns.push(new TextRun({ text: sanitizeText(part.replace(/\*\*/g, '')), font: 'Arial', size: 24, bold: true }))
+            } else if (part.startsWith('`') && part.endsWith('`')) {
+              textRuns.push(new TextRun({ text: sanitizeText(part.replace(/`/g, '')), font: 'Courier New', size: 22 }))
+            } else if (part.startsWith('(') && part.endsWith(')') && part.includes('=')) {
+              // Mathematical expressions in parentheses - use italic font
+              textRuns.push(new TextRun({ text: sanitizeText(part), font: 'Arial', size: 24, italics: true }))
+            } else if (part.length > 0) {
+              textRuns.push(new TextRun({ text: sanitizeText(part), font: 'Arial', size: 24 }))
+            }
+          }
+          
+          if (textRuns.length > 0) {
+            paragraphs.push(
+              new Paragraph({
+                children: textRuns,
+                spacing: { after: 100 },
+                indent: { left: baseIndent },
+              })
+            )
+          }
+        }
+      }
+      
+      return paragraphs
+    }
+
     // Load the logo image
     const imagePath = path.join(process.cwd(), 'public', 'image.png')
     const imageBuffer = fs.readFileSync(imagePath)
@@ -809,14 +969,19 @@ async function handleRetourMode(request: NextRequest) {
       )
 
       retourData.definitions.forEach(def => {
+        // Add the word as a subheading
         children.push(
           new Paragraph({
             children: [
-              new TextRun({ text: `${sanitizeText(def.mot)}: `, font: 'Arial', size: 24, bold: true }),
-              new TextRun({ text: sanitizeText(def.definition), font: 'Arial', size: 24 })
-            ]
+              new TextRun({ text: `${sanitizeText(def.mot)}`, font: 'Arial', size: 24, bold: true })
+            ],
+            spacing: { before: 150, after: 80 },
           })
         )
+        
+        // Parse and add the definition with proper formatting
+        const definitionParagraphs = parseTextToParagraphs(def.definition)
+        children.push(...definitionParagraphs)
       })
 
       children.push(new Paragraph({ text: '' })) // Spacing after section
@@ -885,15 +1050,10 @@ async function handleRetourMode(request: NextRequest) {
         for (let paraIdx = 0; paraIdx < sortedParagraphs.length; paraIdx++) {
           const para = sortedParagraphs[paraIdx]
 
-          // Add paragraph text
+          // Add paragraph text with proper formatting
           if (para.text && para.text.trim()) {
-            children.push(
-              new Paragraph({
-                children: [new TextRun({ text: sanitizeText(para.text), font: "Arial", size: 24 })],
-                indent: { left: 400 },
-                spacing: { after: 150 },
-              })
-            )
+            const formattedParagraphs = parseTextToParagraphs(para.text, 400)
+            children.push(...formattedParagraphs)
           }
 
           // Add image if present
