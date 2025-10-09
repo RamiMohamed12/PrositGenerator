@@ -672,7 +672,7 @@ async function handleRetourMode(request: NextRequest) {
         // Handle regular text with inline formatting
         else {
           // First convert any LaTeX expressions
-          let processedLine = convertLatexToText(line)
+          const processedLine = convertLatexToText(line)
           
           // Parse bold (**text**), code (`text`), and math expressions
           const parts = processedLine.split(/(\*\*.*?\*\*|\`.*?\`|\(.*?\)|\[.*?\])/)
